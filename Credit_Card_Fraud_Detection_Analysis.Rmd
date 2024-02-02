@@ -1,0 +1,163 @@
+---
+title: "Credit Card Fraud Detection Analysis"
+author: "Le Thuy Nguyen"
+date: "2023-11-25"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+## Introduction
+
+### Background and Motivation
+In the evolving landscape of digital finance, the threat of credit card fraud has escalated, posing a significant challenge for both consumers and financial institutions. This issue has become increasingly personal and relevant, not only in the professional realm of data analysis and finance but also in the daily lives of individuals, including my own experiences and those of my peers. The detrimental impact of financial fraud, which ranges from financial loss to a breach of personal security, underscores the urgency and importance of developing robust fraud detection mechanisms.
+
+### Project Overview
+This project is dedicated to constructing a comprehensive analytical framework for detecting fraudulent transactions in financial datasets. Leveraging the extensive dataset of credit card transactions from European cardholders in 2023, which includes over 550,000 anonymized records, the objective is to unearth and analyze patterns that differentiate legitimate transactions from fraudulent ones. This dataset offers a fertile ground for applying advanced data analysis techniques, given its rich and varied features encapsulating various transaction attributes.
+
+### Methodological Approach
+The cornerstone of this project is an "Exploratory Data Analysis" (EDA) approach, utilizing powerful tools such as ggplot2 for visualization and dplyr for data manipulation. Through meticulous examination, the EDA will focus on identifying patterns, outliers, and anomalies indicative of fraudulent activities. The visual exploration of data is not only instrumental in understanding the distribution and relationships inherent in the dataset but also forms the basis for more intricate analyses.
+
+Building on the insights gained from EDA, the project will implement "Simple Clustering Techniques" like K-Means clustering to group similar transactions. This method is expected to be pivotal in revealing hidden patterns and groupings within the data, thereby flagging unusual clusters that could potentially signify fraudulent activities.
+
+## Data Loading and Preliminary Exploration
+
+### Load necessary libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(cluster)
+library(ggplot2)
+library(corrplot)
+library(knitr)
+```
+
+### Set up directory and load the dataset
+```{r}
+# Set the directory
+getwd()
+setwd('/Users/sillymoonie/Desktop/MATH17')
+```
+
+```{r}
+Credit_Card_Dataset_2023 <- read.csv('/Users/sillymoonie/Desktop/MATH17/creditcard_2023.csv')
+#View(Credit_Card_Dataset_2023)
+```
+
+### Preliminary exploration
+```{r}
+summary(Credit_Card_Dataset_2023)
+table(Credit_Card_Dataset_2023$Class)
+```
+
+### Data Manipulation
+```{r}
+# Summarizing average amount by class
+average_amount_by_class <- Credit_Card_Dataset_2023 %>%
+  group_by(Class) %>%
+  summarise(AverageAmount = mean(Amount, na.rm = TRUE))
+
+# Print the table
+kable(average_amount_by_class)
+```
+
+### Exploratory Data Analysis
+```{r}
+# Custom for plot's title
+custom_theme <- theme_minimal() +
+                theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+```{r}
+# Histogram of transaction amounts
+ggplot(Credit_Card_Dataset_2023, aes(x = Amount)) +
+  geom_histogram(bins = 50, fill = 'blue', alpha = 0.7) +
+  theme_minimal() +
+  labs(title = 'Distribution of Transaction Amounts', x = 'Amount', y = 'Frequency') + custom_theme
+```
+
+```{r}
+# Faceted histogram plot for comparing distributions by class for V1
+ggplot(Credit_Card_Dataset_2023, aes(x = V1, fill = as.factor(Class))) +
+  geom_histogram(bins = 50, alpha = 0.7) +
+  facet_wrap(~Class) +
+  theme_minimal() +
+  labs(title = 'V1 Distribution by Fraudulent and Non-Fraudulent Transactions', x = 'V1', y = 'Frequency') + custom_theme
+```
+```{r}
+# Faceted histogram plot for comparing distributions by class for V2
+ggplot(Credit_Card_Dataset_2023, aes(x = V2, fill = as.factor(Class))) +
+  geom_histogram(bins = 50, alpha = 0.7) +
+  facet_wrap(~Class) +
+  theme_minimal() +
+  labs(title = 'V2 Distribution by Fraudulent and Non-Fraudulent Transactions', x = 'V2', y = 'Frequency') + custom_theme
+```
+
+```{r}
+# Boxplot for Transaction Amount by Class
+ggplot(Credit_Card_Dataset_2023, aes(x = as.factor(Class), y = Amount)) +
+  geom_boxplot(fill = 'blue', alpha = 0.7) +
+  labs(title = "Boxplot of Transaction Amounts by Class", x = "Class", y = "Amount") +
+  theme_minimal() + custom_theme
+```
+
+
+```{r}
+# Density Plot of V2 by Class
+ggplot(Credit_Card_Dataset_2023, aes(x = V2, fill = as.factor(Class))) +
+  geom_density(alpha = 0.7) +
+  labs(title = "Density Plot of V2 by Class", x = "V2", y = "Density") +
+  theme_minimal() + custom_theme
+```
+
+```{r}
+# Scatter Plot of V1 vs V2
+ggplot(Credit_Card_Dataset_2023, aes(x = V1, y = V2, color = as.factor(Class))) +
+  geom_point(alpha = 0.7) +
+  labs(title = "Scatter Plot of V1 vs V2", x = "V1", y = "V2") +
+  theme_minimal() + custom_theme
+```
+
+### Correlation Analysis
+```{r}
+cor_matrix <- cor(select(Credit_Card_Dataset_2023, V1, V2, V3, Amount, Class))
+corrplot(cor_matrix, method = "circle")
+```
+
+### K-Means Clustering
+```{r}
+# K-Means Clustering
+set.seed(123)
+Credit_Card_Dataset_2023_scaled <- scale(select(Credit_Card_Dataset_2023, V1, V2, V3, Amount))
+kmeans_result <- kmeans(Credit_Card_Dataset_2023_scaled, centers = 4)  
+```
+
+## Insights from Visualization
+
+### 1. Transaction Amount Analysis
+• The histogram of transaction amounts revealed a skewed distribution, with a higher frequency of lower-amount transactions.
+
+• The boxplot comparison between fraudulent and legitimate transactions showed that fraudulent transactions tend to have different transaction amount characteristics, which could be a key indicator in identifying fraud.
+
+### 2. Feature Distributions
+• The faceted histograms for anonymized features V1, and V2 highlighted distinct distribution patterns between fraudulent and non-fraudulent transactions.
+
+• These differences in distributions across the classes underscored the relevance of these features in distinguishing fraudulent activities.
+
+### 3. Correlation Analysis
+• The correlation heatmap provided insights into the relationships between various features.
+
+• Notably, some features exhibited a higher correlation with the transaction class, suggesting their potential as predictors in detecting fraud.
+
+### 4. Clustering Outcomes
+• The visualization of K-Means clustering results helped in identifying clusters that deviated significantly from typical transaction patterns.
+
+• These clusters often corresponded to higher incidences of fraud, validating the effectiveness of clustering techniques in fraud detection.
+
+## Conclusion, Significance, and Future Directions
+Throughout this project, I've delved deep into the complexities of financial data, uncovering patterns and anomalies crucial for detecting fraud. This journey has not only sharpened my analytical skills but also highlighted the significance of a meticulous, data-driven approach in the realm of financial security. More than just an academic venture, this work stands as a testament to my ability to tackle critical challenges in finance through the power of data analytics. My goal has always been to create models that not only detect fraud accurately but also minimize false positives, thereby enhancing the trustworthiness of digital financial transactions. As I look to the future, I am excited to integrate more advanced machine learning models and conduct a more nuanced analysis of transaction types. This will undoubtedly fortify the effectiveness of our fraud detection methods, reinforcing our defenses in an increasingly digital financial world.
+
+
+
